@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+						http://www.springframework.org/schema/beans/spring-beans-3.2.xsd"  default-autowire="byName">
+
+    <!-- ======================================================================== -->
+    <!-- DataSource定义 -->
+    <!-- ======================================================================== -->
+    <bean id="log-filter" name="log-filte" class="com.alibaba.druid.filter.logging.Slf4jLogFilter">
+        <property name="resultSetLogEnabled" value="false"/>
+        <property name="dataSourceLogEnabled" value="false"/>
+        <property name="connectionLogEnabled" value="false"/>
+        <property name="statementExecutableSqlLogEnable" value="true"/>
+    </bean>
+
+    <bean id="stat-filter" name="stat-filte" class="com.alibaba.druid.filter.stat.StatFilter">
+        <property name="slowSqlMillis" value="1000"/>
+        <property name="logSlowSql" value="true"/>
+        <property name="mergeSql" value="true"/>
+    </bean>
+
+    <bean id="wall-filter"  name="wall-filter" class="com.alibaba.druid.wall.WallFilter">
+        <property name="config" ref="myWallConfig"/>
+    </bean>
+
+    <bean id="myWallConfig" class="com.alibaba.druid.wall.WallConfig">
+        <property name="multiStatementAllow" value="true"/>
+    </bean>
+
+    <!-- data source -->
+    <bean id="appDemoDataSource" primary="true" name="appDemoDataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init"
+          destroy-method="close">
+        <property name="driverClassName" value="${jdbc.appdemo.database.driver}"/>
+        <property name="url" value="${jdbc.appdemo.database.url}"/>
+        <property name="username" value="${jdbc.appdemo.database.username}"/>
+        <property name="password" value="${jdbc.appdemo.database.password}"/>
+
+        <property name="maxActive" value="${jdbc.appdemo.database.maxActive}"/>
+        <property name="initialSize" value="${jdbc.appdemo.database.initialSize}"/>
+        <property name="maxWait" value="3000"/>
+        <property name="minIdle" value="5"/>
+
+        <property name="connectionInitSqls" value="set names utf8mb4" />
+
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+        <property name="minEvictableIdleTimeMillis" value="1200000"/>
+
+        <property name="validationQuery" value="SELECT 1"/>
+        <property name="testWhileIdle" value="true"/>
+        <property name="testOnBorrow" value="false"/>
+        <property name="testOnReturn" value="false"/>
+
+        <property name="poolPreparedStatements" value="true"/>
+        <property name="maxOpenPreparedStatements" value="100"/>
+
+        <property name="proxyFilters">
+            <list>
+                <ref bean="log-filter"/>
+                <ref bean="wall-filter"/>
+                <ref bean="stat-filter"/>
+            </list>
+        </property>
+    </bean>
+
+    <!-- session factory -->
+    <bean id="appDemoSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="appDemoDataSource"/>
+        <property name="configLocation" value="classpath:spring/datasource/app-demo-mysql-sqlmap-config.xml"/>
+        <property name="mapperLocations" >
+            <list>
+                <value>classpath:/spring/dal/mapper/StaffMapper.xml</value>
+            </list>
+        </property>
+        <property name="typeAliasesPackage" value="com.jhtech.appdemo.domain"/>
+    </bean>
+
+    <bean name="appDemoMapperScannerConfigurer" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.jhtech.appdemo.dao"/>
+        <property name="sqlSessionFactoryBeanName" value="appDemoSqlSessionFactory"/>
+    </bean>
+
+    <bean id="appDemoPlatformTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="appDemoDataSource"/>
+        <qualifier value="appDemoTx" />
+    </bean>
+</beans>
